@@ -11,16 +11,17 @@ pub struct Program<'a> {
 pub enum Error {
     Unknown,
     FunctionNotFound,
+    SequenceError(usize),
 }
 
 /// Values we understand. These are calculated from expressions.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value<'a> {
     StringLiteral(&'a str),
     String(String),
     Vector(Vec<Value<'a>>),
-    Integer(i64),
-    Float(i64),
+    Integer(i32),
+    Float(f32),
     Nil,
 }
 
@@ -57,20 +58,21 @@ impl<'a> Program<'a> {
         Program { data: program_data }
     }
 
-    pub fn iter_statements(&'a self) -> ElementIter<'a> {
+    pub fn iter_statements(&'a self, index: usize) -> ElementIter<'a> {
         ElementIter {
             program: self,
-            index: 0,
+            index,
         }
     }
 
     pub fn run(&self, function_name: &str) -> Result<Value, Error> {
         let mut fn_index = None;
-        for (index, statement) in self.iter_statements() {
+        // Looking for a function
+        for (index, statement) in self.iter_statements(0) {
             match statement {
                 Element::Function(name) => {
                     if name == function_name {
-                        fn_index = Some(index);
+                        fn_index = Some(index + 2 + name.len());
                         break;
                     }
                 }
@@ -86,10 +88,74 @@ impl<'a> Program<'a> {
         }
     }
 
-    pub fn run_from_index(&self, _index: usize) -> Result<Value, Error> {
-        Err(Error::Unknown)
+    /// Evaluate an expression at the given index.
+    ///
+    /// Currently only integer literals are supported. TODO:
+    ///
+    /// * Addition
+    ///   * Integer + Integer
+    ///   * Float + Float
+    ///   * String + String
+    /// * Subtraction
+    ///   * Integer - Integer
+    ///   * Float - Float
+    /// * Multiplication
+    ///   * Integer * Integer
+    ///   * Float * Float
+    ///   * String * Integer
+    /// * Division
+    ///   * Integer / Integer
+    ///   * Float / Float
+    /// * Function call
+    /// * Bitwise OR (integer)
+    /// * Bitwise AND (integer)
+    /// * Bitwise XOR (integer)
+    /// * Unary negation
+    ///   * Integer
+    ///   * Float
+    fn evaluate_expression(&self, index: usize) -> Result<(usize, Value), Error> {
+        match self.iter_statements(index).next() {
+            Some((sub_index, Element::Integer(i))) => Ok((sub_index, Value::Integer(i))),
+            _ => Err(Error::SequenceError(index)),
+        }
     }
 
+    /// Runs a sequence of statements (each described by a leading `Element`).
+    ///
+    /// TODO:
+    ///
+    /// * If statement
+    /// * If/Else statement
+    /// * If/Elseif/Else statement
+    /// * Loop statement (with break)
+    /// * For loop
+    pub fn run_from_index(&self, index: usize) -> Result<Value, Error> {
+        for (sub_index, statement) in self.iter_statements(index) {
+            match statement {
+                Element::Nop => {
+                    // Skip this one
+                }
+                Element::Return => {
+                    // Pop and evaluate an expression
+                    let (_new_index, value) = self.evaluate_expression(sub_index + 1)?;
+                    return Ok(value);
+                }
+                Element::End => {
+                    // End of our function
+                    break;
+                }
+                _ => {
+                    // Uh oh - shouldn't find this element inside a function as a statement
+                    return Err(Error::SequenceError(sub_index));
+                }
+            }
+        }
+        Ok(Value::Nil)
+    }
+
+    /// Assuming there's a string at this index, we pull an (8-bit) length, then interpret that many bytes as UTF-8.
+    ///
+    /// Returns None if we run out of bytes or it doesn't look like valid UTF-8.
     fn read_string(&self, index: usize) -> Option<&str> {
         self.data.get(index).and_then(|len| {
             core::str::from_utf8(&self.data[index + 1..index + 1 + usize::from(*len)]).ok()
@@ -101,6 +167,7 @@ impl<'a> Iterator for ElementIter<'a> {
     type Item = (usize, Element<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
+        // Find what sort of statement is next
         match self.program.data.get(self.index).cloned() {
             Some(Program::FUNCTION_ID) => {
                 if let Some(name) = self.program.read_string(self.index + 1) {
@@ -184,10 +251,22 @@ mod tests {
 
     #[test]
     fn create_program() {
-        let data = [Program::FUNCTION_ID, 0x03, b'f', b'o', b'o'];
+        let data = [
+            Program::FUNCTION_ID,
+            0x05,
+            b'f',
+            b'o',
+            b'o',
+            0xc2,
+            0xa3,
+            Program::RETURN_ID,
+            Program::INTEGER1_ID,
+            0x01,
+            Program::END_ID,
+        ];
         let p = Program::new(&data);
         assert_eq!(p.run("bar"), Err(Error::FunctionNotFound));
-        assert_eq!(p.run("foo"), Err(Error::Unknown));
+        assert_eq!(p.run("foo£"), Ok(Value::Integer(0x01)));
     }
 
     #[test]
@@ -205,10 +284,10 @@ mod tests {
             Program::END_ID,
         ];
         let p = Program::new(&data);
-        for (idx, s) in p.iter_statements() {
+        for (idx, s) in p.iter_statements(0) {
             println!("idx={}, s={:?}", idx, s);
         }
-        assert_eq!(p.iter_statements().count(), 4);
+        assert_eq!(p.iter_statements(0).count(), 4);
     }
 
     #[test]
@@ -216,7 +295,7 @@ mod tests {
         let data = [Program::INTEGER1_ID, 0x03];
         let p = Program::new(&data);
         assert_eq!(
-            p.iter_statements().next(),
+            p.iter_statements(0).next(),
             Some((0, Element::Integer(0x03)))
         );
     }
@@ -226,7 +305,7 @@ mod tests {
         let data = [Program::INTEGER2_ID, 0x03, 0x04];
         let p = Program::new(&data);
         assert_eq!(
-            p.iter_statements().next(),
+            p.iter_statements(0).next(),
             Some((0, Element::Integer(0x0304)))
         );
     }
@@ -236,7 +315,7 @@ mod tests {
         let data = [Program::INTEGER3_ID, 0x03, 0x04, 0x05];
         let p = Program::new(&data);
         assert_eq!(
-            p.iter_statements().next(),
+            p.iter_statements(0).next(),
             Some((0, Element::Integer(0x030405)))
         );
     }
@@ -246,8 +325,25 @@ mod tests {
         let data = [Program::INTEGER4_ID, 0x03, 0x04, 0x05, 0x06];
         let p = Program::new(&data);
         assert_eq!(
-            p.iter_statements().next(),
+            p.iter_statements(0).next(),
             Some((0, Element::Integer(0x03040506)))
         );
+    }
+
+    #[test]
+    fn return_integer_literal() {
+        let data = [
+            Program::FUNCTION_ID,
+            0x03,
+            b'f',
+            b'o',
+            b'o',
+            Program::RETURN_ID,
+            Program::INTEGER1_ID,
+            0xF0,
+            Program::END_ID,
+        ];
+        let p = Program::new(&data);
+        assert_eq!(p.run("foo"), Ok(Value::Integer(0xF0)));
     }
 }
