@@ -10,9 +10,9 @@ fn guess(min, max)
 		let guess = int(guess)
 		if guess == nil
 			print( "Er, that didn't look like a number." )
-		else if guess < number
+		elsif guess < number
 			print( "No, that's too low." )
-		else if guess > number
+		elsif guess > number
 			print( "Uh oh, too high!" )
 		else
 			print( "That's right! Well done :)" )
