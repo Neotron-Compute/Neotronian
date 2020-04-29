@@ -1,7 +1,7 @@
 # A simple guessing game
 # As seen in every beginner's BASIC programming book
 fn guess(min, max)
-	print("I'm thinking of a number between {} and {}", min, max)
+	println( "I'm thinking of a number between {} and {}", min, max )
 	let number = int(min + (random() * (max - min)))
 	let attempt = "first"
 	loop
@@ -9,13 +9,13 @@ fn guess(min, max)
 		attempt = "next"
 		let guess = int(guess)
 		if guess == nil
-			print( "Er, that didn't look like a number." )
+			println( "Er, that didn't look like a number." )
 		elsif guess < number
-			print( "No, that's too low." )
+			println( "No, that's too low." )
 		elsif guess > number
-			print( "Uh oh, too high!" )
+			println( "Uh oh, too high!" )
 		else
-			print( "That's right! Well done :)" )
+			println( "That's right! Well done :)" )
 			break
 		end
 	end
