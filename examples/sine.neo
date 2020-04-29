@@ -1,0 +1,15 @@
+# Prints a sine wave
+fn sine()
+	gfx_mode(1)
+	let width = gfx_width() - 1
+	let height = gfx_height() - 1
+	let num_sine_waves = 5
+	let PI = 3.141592
+	let rate = width / ( num_sine_waves * PI )
+	let half_h = height / 2
+	for x = 0 to width
+		y = int( half_h * ( 1 + sin( x / rate ) ) )
+		gfx_plot( x, y )
+	end
+end
+

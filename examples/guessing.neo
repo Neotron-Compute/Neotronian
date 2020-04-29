@@ -1,0 +1,23 @@
+# A simple guessing game
+# As seen in every beginner's BASIC programming book
+fn guess(min, max)
+	print("I'm thinking of a number between {} and {}", min, max)
+	let number = int(min + (random() * (max - min)))
+	let attempt = "first"
+	loop
+		let guess = input( "Enter your {} guess: ", attempt )
+		attempt = "next"
+		let guess = int(guess)
+		if guess == nil
+			print( "Er, that didn't look like a number." )
+		else if guess < number
+			print( "No, that's too low." )
+		else if guess > number
+			print( "Uh oh, too high!" )
+		else
+			print( "That's right! Well done :)" )
+			break
+		end
+	end
+end
+guess(1, 100)
