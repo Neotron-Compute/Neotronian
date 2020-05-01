@@ -91,6 +91,54 @@ language.
 When filesystem support is available, programs can be loaded and saved in
 their plain-text format, or as tokenised data.
 
+## Valid Statements
+
+### if <expr>
+
+The block is entered if `bool(<expr>)` is true.
+
+### elsif <expr>
+
+An optional extra checked block for an `if` statement.
+
+### else
+
+The optional final block for an `if` statement.
+
+### for <var> = <expr1> to <expr2> [ step <expr> ]
+
+Starts a finite loop.
+
+### loop
+
+Starts an infinite loop.
+
+### break
+
+Exits out of the innermost `for` or `loop` block and moves past the
+corresponding `end`.
+
+### let <var> = <expr>
+
+Assigns the value of `<expr>` to the variable called `<var>`.
+
+### fn <name>([ <param> [, <param> ]+ [,  ... ] ])
+
+Start a new function block. You can have zero or more parameters and an
+optional final "..." which means any number of parameters are allow - these
+are bundled into a Vec called `args`.
+
+### end
+
+Closes out the most recent `if`, `loop` or `fn` block.
+
+### expression-statement
+
+Any line which doesn't start with one of the above, is treated as an
+expression-statement. Typically used to call a function where you don't care
+about the return value. Broadly equivalent to `let _ = <expr>`, except `_`
+isn't a thing.
+
 ## Standard Library
 
 The following functions are always in scope.
@@ -273,6 +321,16 @@ have the following Integer values:
 * minute (0..59)
 * second (0..60)
 
+### input(prompt)
+
+Prints the prompt string, then reads a string from standard-input until Enter
+is pressed or a control character (Ctrl-A through Ctrl-Z) is entered.
+
+### readkey()
+
+Returns a character (as a single character string) if a key has been pressed
+and a character is in standard-input buffer, otherwise returns Nil.
+
 ### open(filename, mode)
 
 Open a file. Returns an integer file handle, or Nil if there was an error.
@@ -283,15 +341,35 @@ Closes a previously opened file.
 
 ### read(handle, length)
 
-Returns bytes from a file as a Vec.
+Reads bytes from a file, at the current offset, as a Vec of Integers, each 0..255.
 
-### write(handle, vec)
+### readstring(handle, length)
 
-Writes bytes to a file.
+Reads UTF-8 bytes from a file and returns a String. If the bytes aren't valid
+UTF-8, you get Nil.
 
-### seek(filename, whence, offset)
+### iseof(handle)
 
-Seeks to a byte offset in the file.
+Returns True if the current offset is at the end of the file.
+
+### readline(handle)
+
+Reads UTF-8 bytes from a file until a new-line character (or EOF) is found,
+and returns a String.
+
+### write(handle, data)
+
+Writes bytes to a file. If data is a Vec, every item in the Vec is converted
+to an integer and then only the bottom 8 bits written. If data is a String,
+the String is written as UTF-8 encoded bytes. If any other type is provided,
+it is converted to a String first.
+
+### seek(handle, offset, whence)
+
+Seeks to a byte offset in the file. Whence should be the string "set", "end"
+or "current", and controls how the offset is interpreted (as absolute,
+relative to the end of the file, or relative to the current offset). Offset
+will be converted to an integer.
 
 ### opendir(directory)
 
@@ -311,7 +389,41 @@ Get stats for a file as a Map.
 
 ### lasterror()
 
-Get the most recent error code from the OS.
+Get the most recent error code from the OS as a String.
+
+## Constants
+
+The following constants exist everywhere as part of the standard library.
+
+### STDOUT
+
+The file handle for standard output.
+
+### STDIN
+
+The file handle for standard input.
+
+### STDERR
+
+The file handle for standard error.
+
+### PI
+
+The floating point value 3.141592...
+
+## Outstanding Questions
+
+1. Which is better `let x = expr()`, `x = expr()`, or `x := expr()`?
+1. Should variables be declared with `var` first, i.e. `var x = 1`?
+1. Which is better `if x == 1`, or `if x = 1`?
+1. Which is better `if expr()`, or `if expr() then`?
+1. Should we support tuples?
+1. Should you create a Vec with `vec()` or `[]`?
+1. Should you create a Map with `map()` or `{}`? 
+1. Should we support dot-notation (`my_variable.function()`)? How does that map to a function?
+1. Can functions be stored in variables?
+1. Should we distinguish between procedures and functions?
+1. Is a bare expression a valid statement?
 
 ## Licence
 

@@ -1,0 +1,34 @@
+# Map example
+#
+# Maps are passed by reference, which is why `shrink` modifies the given 
+# rectangle. Vectors are also passed by reference. Both maps and vectors 
+# are mutable as well.
+#
+# Strings, integers and floats are passed by value, and also immutable. 
+# That is, storing a new value just replaces the old value as opposed to 
+# modifying the old value.
+#
+# Note we can access an item in the map as an rvalue or an lvalue with 
+# `map_name.key_name` or `map_name["key_name"]`. The former only works 
+# if your key is a literal. The latter is useful if your key is a 
+# variable not a literal.
+fn calc_area(rectangle)
+	return rectangle["width"] * rectangle["height"]
+end
+fn shrink(rectangle)
+	rectangle.width = rectangle.width / 2
+	rectangle.height = rectangle.height / 2
+end
+fn make_square(side)
+	let square = map()
+	square.width = side
+	square.height = side
+	return square
+end
+fn test()
+	let square = make_square( 20 )
+	println( "Area of square {}x{} = {}", square.width, square.height, calc_area( square ) )
+	# Now shrinking the square
+	shrink(square)
+	println( "Area of square {}x{} = {}", square.width, square.height, calc_area( square ) )
+end
