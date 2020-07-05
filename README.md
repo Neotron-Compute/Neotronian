@@ -12,23 +12,34 @@ fn foo( x )
         return 0
     end
     # We have dynamic typing
-    # All assignments use the `let` keyword
-    let z = x + 1
+    # Variables are created with the `var` statement
+    # This creates a new variable in this scope, shadowing any variables
+    # with the same name created in a different (earlier) scope
+    var z = x + 1
+    # We update an existing variable with the `let` statement
+    let z = z + 1
     # We have hashmaps
-    let m = map()
-    let m.key1 = z
-    let m[ "key2" ] = "hi"
+    var m = map()
+    m.set("key2", "hi")
+    # If we read a key that doesn't exist, we get `nil`
+    print("getting unknown key returns {}", m.get("unknown"))
     # We have a special map called `globals`, which is always in scope
-    let globals.x = x
-    # We have vectors, which can contain different types of value
-    let v = vec()
-    push( v, 1 )
-    push( v, format( "Hi {}", z ) )
-    push( v, m )
+    globals.set("x", x)
+    # We have vectors, which are growable ordered lists of data
+    var v = vec()
+    # We have 'method' calls, so this...
+    v.push( 1 )
+    # ...is the same as
+    vector.push(v, 1)
+    # Note that function arguments are always copied, but vectors and hashmaps are
+    # reference counted, and so the function gets a copy of the reference. This
+    # is similar to Python.
+    v.push( format( "Hi {}", z ) )
+    v.push( m )
     # We have BASIC style for loops
     for idx = 0 to len( v ) - 1
         # Variables have block scope
-        let y = idx + 1
+        var y = idx + 1
         # We can print things, using `{}` to insert values.
         # We can also index a vec with `[]`, and we can get the type
         # of a variable with the `type` function.
@@ -41,6 +52,37 @@ fn foo( x )
     # The variable y no longer exists here
     return z
 end
+
+# We also have modules
+module baz
+    fn foo()
+        # Accessed as baz.foo()
+    end
+end
+
+# We even have classes
+# Internally each class has a Hashmap (for class variables), and each Object has a Hashmap (for object members)
+class Point
+   var classVariable = "Some String"
+
+   fn __init__(self, x, y)
+      # This sets the `x` member of the new object's internal hashmap
+      self.x = x
+      self.y = y
+   end
+
+   # This is called automatically when we convert objects of this class to a string
+   fn __str__(self)
+      var s = format("Point(x={},y={}", self.x, self.y)
+      return s
+   end
+end
+
+fn testPoint()
+   var m = Point.new(1, 2)
+   # Look ups happen in the object dictionary first, then the class dictionary
+   print("m = {} ({})", string(m), m.classVariable)
+end
 ```
 
 ## Types and Variables
@@ -50,13 +92,16 @@ A variable can be of the following types:
 * Scalars:
   * Integer (signed, 32-bit)
   * Float (32-bit)
-  * String (UTF-8 encoded)
+  * String (immutable, UTF-8 encoded)
+  * Bytes (immutable ordered collection of 8-bit bytes)
   * Boolean (true or false)
   * Nil
 * Collections:
   * Vector (an ordered collection of values of any type)
   * Map (an associative array, or dictionary, where the keys are String, the
     values any type)
+  * Classes (a collection of class variables and methods)
+  * Objects (an instance of a class, with its own variables)
 
 To save memory, internally a `String` distinguishes between a pointer to a
 string-literal in the program source, and a heap-allocated string which has
@@ -65,7 +110,7 @@ been created during program execution (e.g. with the `format` function).
 The language is dynamically typed, so a variable remembers at run time both
 its type and its value. Scalars are passed to functions by value, and have
 Copy semantics. Collections are passed by reference, and have
-reference-counting semantics.
+reference-counting semantics (i.e. a copy of the reference is passed).
 
 Variables have block scope (that is inside function, for loop, loop and
 if/elsif/else statement blocks) and collections are only freed when they hit a
@@ -97,7 +142,7 @@ their plain-text format, or as tokenised data.
 
 The block is entered if `bool(<expr>)` is true.
 
-### elsif <expr>
+### elif <expr>
 
 An optional extra checked block for an `if` statement.
 
@@ -111,7 +156,7 @@ Starts a finite loop.
 
 ### loop
 
-Starts an infinite loop.
+Starts an infinite loop. Same as `while true`
 
 ### break
 
@@ -120,7 +165,11 @@ corresponding `end`.
 
 ### let <var> = <expr>
 
-Assigns the value of `<expr>` to the variable called `<var>`.
+Assigns the value of `<expr>` to the pre-existing variable called `<var>`.
+
+### var <var> [ = <expr> ]
+
+Creates a new variable called `var`. Defaults to `nil` if `<expr>` isn't supplied.
 
 ### fn <name>([ <param> [, <param> ]+ [,  ... ] ])
 
@@ -130,7 +179,11 @@ are bundled into a Vec called `args`.
 
 ### end
 
-Closes out the most recent `if`, `loop` or `fn` block.
+Closes out the most recent `if`, `loop`, `module` or `fn` block.
+
+### module
+
+Starts a new module. A module is really just a namespace for functions. It can contain further modules.
 
 ### expression-statement
 
@@ -268,6 +321,18 @@ Move to position x, y without drawing anything.
 
 Draw a line from the current x, y position to the given x, y position, in the foreground colour.
 
+### rectangle(x1, y1, x2, y2, fill=0)
+
+Draw (and optionally fill in) a rectangle.
+
+### circle(x, y, r, arc_start=0, arc_end=360, fill=0)
+
+Draw (and optionally) fill a circle, or segment of a circle, with the given centre point and radius.
+
+### circle(x, y, r1, r2, arc_start=0, arc_end=360, fill=0)
+
+Draw (and optionally) fill an ellipse, or segment of a ellipse, with the given centre point, major radius and minor radius.
+
 ### fill(x, y)
 
 Perform a flood fill at the given x, y position. The flood fill will move
@@ -330,6 +395,16 @@ is pressed or a control character (Ctrl-A through Ctrl-Z) is entered.
 
 Returns a character (as a single character string) if a key has been pressed
 and a character is in standard-input buffer, otherwise returns Nil.
+
+### rawmode(x)
+
+If bool(x) is true, puts the console in `raw` mode, otherwise leaves `raw` mode. In `raw` mode,
+you must read keyboard events with `readevent()` rather than using `readkey()`. This is a much
+better mode for writing games.
+
+### readevent()
+
+Read a raw keyboard event. If an event is available, it is returned as an integer, otherwise returns Nil.
 
 ### open(filename, mode)
 
@@ -414,7 +489,6 @@ The floating point value 3.141592...
 ## Outstanding Questions
 
 1. Which is better `let x = expr()`, `x = expr()`, or `x := expr()`?
-1. Should variables be declared with `var` first, i.e. `var x = 1`?
 1. Which is better `if x == 1`, or `if x = 1`?
 1. Which is better `if expr()`, or `if expr() then`?
 1. Should we support tuples?
@@ -422,8 +496,12 @@ The floating point value 3.141592...
 1. Should you create a Map with `map()` or `{}`? 
 1. Should we support dot-notation (`my_variable.function()`)? How does that map to a function?
 1. Can functions be stored in variables?
+1. Do we have lambdas?
+1. Do lambdas capture local scope?
+1. If so, is that implicit or explicit?
 1. Should we distinguish between procedures and functions?
 1. Is a bare expression a valid statement?
+1. Should we support modules, or prefix stdlib functions with `module_`, or just lump it all together like C and PHP?
 
 ## Licence
 
