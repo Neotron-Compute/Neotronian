@@ -181,9 +181,10 @@ are bundled into a Vec called `args`.
 
 Closes out the most recent `if`, `loop`, `module` or `fn` block.
 
-### module
+### module {name}
 
-Starts a new module. A module is really just a namespace for functions. It can contain further modules.
+Starts a new module called `{name}`. A module is really just a namespace for functions. It can contain further modules. Maybe one day
+we'll let you load modules off disk.
 
 ### expression-statement
 
