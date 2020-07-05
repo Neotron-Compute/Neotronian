@@ -138,11 +138,11 @@ their plain-text format, or as tokenised data.
 
 ## Valid Statements
 
-### if <expr>
+### if {expr}
 
-The block is entered if `bool(<expr>)` is true.
+The block is entered if `bool({expr})` is true.
 
-### elif <expr>
+### elif {expr}
 
 An optional extra checked block for an `if` statement.
 
@@ -150,7 +150,7 @@ An optional extra checked block for an `if` statement.
 
 The optional final block for an `if` statement.
 
-### for <var> = <expr1> to <expr2> [ step <expr> ]
+### for {var} = {expr1} to {expr2} [ step {expr} ]
 
 Starts a finite loop.
 
@@ -163,15 +163,15 @@ Starts an infinite loop. Same as `while true`
 Exits out of the innermost `for` or `loop` block and moves past the
 corresponding `end`.
 
-### let <var> = <expr>
+### let {var} = {expr}
 
-Assigns the value of `<expr>` to the pre-existing variable called `<var>`.
+Assigns the value of `{expr}` to the pre-existing variable called `{var}`.
 
-### var <var> [ = <expr> ]
+### var {var} [ = {expr} ]
 
-Creates a new variable called `var`. Defaults to `nil` if `<expr>` isn't supplied.
+Creates a new variable called `var`. Defaults to `nil` if `{expr}` isn't supplied.
 
-### fn <name>([ <param> [, <param> ]+ [,  ... ] ])
+### fn {name}([ {param} [, {param} ]+ [,  ... ] ])
 
 Start a new function block. You can have zero or more parameters and an
 optional final "..." which means any number of parameters are allow - these
@@ -189,7 +189,7 @@ Starts a new module. A module is really just a namespace for functions. It can c
 
 Any line which doesn't start with one of the above, is treated as an
 expression-statement. Typically used to call a function where you don't care
-about the return value. Broadly equivalent to `let _ = <expr>`, except `_`
+about the return value. Broadly equivalent to `let _ = {expr}`, except `_`
 isn't a thing.
 
 ## Standard Library
