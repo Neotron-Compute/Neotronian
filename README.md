@@ -4,6 +4,8 @@ A very simple scripting language. Each line can be parsed in isolation and
 stored as compressed tokens. This makes it more memory efficient than Python
 or Lua, while it has more modern features than BASIC (like maps).
 
+**IMPORTANT NOTE:** This project is a work-in-progress and is not complete. Expect nothing to work right.
+
 ```bash
 # We have functions
 fn foo( x )
@@ -140,7 +142,7 @@ their plain-text format, or as tokenised data.
 
 ### if {expr}
 
-The block is entered if `bool({expr})` is true.
+The following block is entered if `bool({expr})` is true.
 
 ### elif {expr}
 
